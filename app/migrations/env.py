@@ -1,8 +1,7 @@
 import asyncio
 from logging.config import fileConfig
-from FastAPI_Project.fastapi_ex.app.models import ratings
 from app.backend.db import Base
-from app.models import feedback, products, users
+from app.models import feedback, products, rating, users
 
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection

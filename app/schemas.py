@@ -23,7 +23,6 @@ class CreateRating(BaseModel):
 
 class CreateFeedback(BaseModel):
     comment: str
-    comment_date: datetime
     is_active: bool = True
     user_id: int
     product_id: int

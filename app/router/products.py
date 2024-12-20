@@ -13,15 +13,27 @@ router = APIRouter(prefix='/product', tags=['product'])
 
 @router.get('/')
 async def get_all_products(db: Annotated[AsyncSession, Depends(get_db)]):
-    product = await db.scalars(select(Product).where(Product.is_active == True))
+    product = await db.scalars(select(Product))
     if product is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Product not found'
         )
     return {
-        'Products': product
+        'Products': product.all()
     }
+
+
+@router.get('/detail/{product_id}')
+async def get_detail_product(db: Annotated[AsyncSession, Depends(get_db)], product_id: int):
+    product = await db.scalar(select(Product).where(Product.id == product_id))
+    if product is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Product not found'
+        )
+
+    return product
 
 
 @router.post('/')
@@ -33,5 +45,26 @@ async def create_product(db: Annotated[AsyncSession, Depends(get_db)], create_pr
     ))
     await db.commit()
     return {
+        'status_code': status.HTTP_201_CREATED,
         'Product': 'Created successfully'
+    }
+
+
+@router.put('/{product_id}')
+async def update_product(db: Annotated[AsyncSession, Depends(get_db)], product_id: int, update_product: CreateProduct):
+    product = await db.scalar(select(Product).where(Product.id == product_id))
+    if product is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Product not found'
+        )
+    await db.execute(update(Product).where(Product.id == product_id).values(
+        name=update_product.name,
+        description=update_product.description,
+        price=update_product.price
+    ))
+    await db.commit()
+    return {
+        'status_code': status.HTTP_200_OK,
+        'Product': 'Updated successfully'
     }

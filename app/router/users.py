@@ -27,7 +27,7 @@ async def get_all_users(db: Annotated[AsyncSession, Depends(get_db)]):
     }
 
 
-@router.get('/{user_id}')
+@router.get('/detail/{user_id}')
 async def get_user(db: Annotated[AsyncSession, Depends(get_db)], user_id: int):
     user = await db.scalar(select(User).where(User.is_active == True, user_id == user_id))
     if user is None:

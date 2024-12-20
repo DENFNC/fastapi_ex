@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.backend.db_depends import get_db
 from app.schemas import CreateRating
-from app.models.ratings import Rating
+from app.models.rating import Rating
 from app.backend.db import AsyncSession
 
 
@@ -25,7 +25,7 @@ async def get_all_product_rating(db: Annotated[AsyncSession, Depends(get_db)]):
     }
 
 
-@ router.get('/detail/{product_id}')
+@router.get('/detail/{product_id}')
 async def get_product_rating_detail(db: Annotated[AsyncSession, Depends(get_db)], product_id):
     rating = await db.scalar(select(Rating).where(Rating.product_id == product_id, Rating.is_active == True))
     if rating is None:
