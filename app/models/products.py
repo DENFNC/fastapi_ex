@@ -11,6 +11,7 @@ class Product(Base):
     name = Column(String, nullable=False)
     description = Column(Text, nullable=False)
     price = Column(Numeric(10, 2), nullable=False)
+    rating = Column(Numeric(10, 2), default=0)  # new
 
     ratings = relationship(
         'Rating', back_populates='product', cascade='all, delete-orphan'

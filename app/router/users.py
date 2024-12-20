@@ -15,15 +15,14 @@ router = APIRouter(prefix='/user', tags=['user'])
 @router.get('/')
 async def get_all_users(db: Annotated[AsyncSession, Depends(get_db)]):
     result = await db.scalars(select(User).where(User.is_active == True))
-    users = result.all()
-    if not users:
+    if not result:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='No users found'
         )
 
     return {
-        'Users': users
+        'Users': result.all()
     }
 
 
