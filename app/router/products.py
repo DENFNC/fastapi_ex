@@ -38,12 +38,13 @@ async def get_detail_product(db: Annotated[AsyncSession, Depends(get_db)], produ
 
 @router.post('/')
 async def create_product(db: Annotated[AsyncSession, Depends(get_db)], create_product: CreateProduct):
-    await db.execute(insert(Product).values(
-        name=create_product.name,
-        description=create_product.description,
-        price=create_product.price
-    ))
-    await db.commit()
+    async with db.begin():
+        await db.execute(insert(Product).values(
+            name=create_product.name,
+            description=create_product.description,
+            price=create_product.price
+        ))
+
     return {
         'status_code': status.HTTP_201_CREATED,
         'Product': 'Created successfully'
@@ -52,18 +53,19 @@ async def create_product(db: Annotated[AsyncSession, Depends(get_db)], create_pr
 
 @router.put('/{product_id}')
 async def update_product(db: Annotated[AsyncSession, Depends(get_db)], product_id: int, update_product: CreateProduct):
-    product = await db.scalar(select(Product).where(Product.id == product_id))
-    if product is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Product not found'
-        )
-    await db.execute(update(Product).where(Product.id == product_id).values(
-        name=update_product.name,
-        description=update_product.description,
-        price=update_product.price
-    ))
-    await db.commit()
+    async with db.begin():
+        product = await db.scalar(select(Product).where(Product.id == product_id))
+        if product is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail='Product not found'
+            )
+        await db.execute(update(Product).where(Product.id == product_id).values(
+            name=update_product.name,
+            description=update_product.description,
+            price=update_product.price
+        ))
+
     return {
         'status_code': status.HTTP_200_OK,
         'Product': 'Updated successfully'

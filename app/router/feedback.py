@@ -28,14 +28,15 @@ async def get_all_feedback(db: Annotated[AsyncSession, Depends(get_db)]):
 
 @router.post('/')
 async def create_feedback(create_feedback: CreateFeedback, db: Annotated[AsyncSession, Depends(get_db)]):
-    await db.execute(insert(Feedback).values(
-        comment=create_feedback.comment,
-        is_active=create_feedback.is_active,
-        user_id=create_feedback.user_id,
-        product_id=create_feedback.product_id,
-        rating_id=create_feedback.rating_id
-    ))
-    await db.commit()
+    async with db.begin():
+        await db.execute(insert(Feedback).values(
+            comment=create_feedback.comment,
+            is_active=create_feedback.is_active,
+            user_id=create_feedback.user_id,
+            product_id=create_feedback.product_id,
+            rating_id=create_feedback.rating_id
+        ))
+
     return {
         'status_code': status.HTTP_201_CREATED,
         'transaction': 'Feedback created successfully'
@@ -44,20 +45,21 @@ async def create_feedback(create_feedback: CreateFeedback, db: Annotated[AsyncSe
 
 @router.put('/{feedback_id}')
 async def update_feedback(db: Annotated[AsyncSession, Depends(get_db)], feedback_id: int, update_feedback: CreateFeedback):
-    feedback = await db.execute(select(Feedback).where(Feedback.id == feedback_id))
-    if feedback is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Feedback not found'
-        )
+    async with db.begin():
+        feedback = await db.execute(select(Feedback).where(Feedback.id == feedback_id))
+        if feedback is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail='Feedback not found'
+            )
 
-    await db.execute(update(Feedback).where(Feedback.id == feedback_id).values(
-        comment=update_feedback.comment,
-        is_active=update_feedback.is_active,
-        user_id=update_feedback.user_id,
-        product_id=update_feedback.product_id
-    ))
-    await db.commit()
+        await db.execute(update(Feedback).where(Feedback.id == feedback_id).values(
+            comment=update_feedback.comment,
+            is_active=update_feedback.is_active,
+            user_id=update_feedback.user_id,
+            product_id=update_feedback.product_id
+        ))
+
     return {
         'status_code': status.HTTP_200_OK,
         'transaction': 'Feedback updated successfully'

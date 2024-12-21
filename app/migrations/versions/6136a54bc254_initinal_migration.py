@@ -1,8 +1,8 @@
-"""First migration
+"""initinal migration
 
-Revision ID: 8a3bd2ef901c
+Revision ID: 6136a54bc254
 Revises: 
-Create Date: 2024-12-19 12:24:53.113502
+Create Date: 2024-12-21 16:13:52.986558
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '8a3bd2ef901c'
+revision: str = '6136a54bc254'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -25,6 +25,7 @@ def upgrade() -> None:
     sa.Column('name', sa.String(), nullable=False),
     sa.Column('description', sa.Text(), nullable=False),
     sa.Column('price', sa.Numeric(precision=10, scale=2), nullable=False),
+    sa.Column('rating', sa.Numeric(precision=10, scale=2), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('users',
@@ -32,6 +33,7 @@ def upgrade() -> None:
     sa.Column('username', sa.String(), nullable=False),
     sa.Column('email', sa.String(), nullable=False),
     sa.Column('password', sa.String(), nullable=False),
+    sa.Column('access_token', sa.String(), nullable=False),
     sa.Column('is_active', sa.Boolean(), nullable=False),
     sa.Column('is_admin', sa.Boolean(), nullable=False),
     sa.PrimaryKeyConstraint('id'),
@@ -46,7 +48,8 @@ def upgrade() -> None:
     sa.Column('is_active', sa.Boolean(), nullable=True),
     sa.ForeignKeyConstraint(['product_id'], ['products.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('user_id', 'product_id', name='_user_product_rating_uc')
     )
     op.create_table('feedback',
     sa.Column('id', sa.Integer(), nullable=False),

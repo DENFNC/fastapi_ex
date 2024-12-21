@@ -22,12 +22,12 @@ async def calculate_average_rating(db: AsyncSession, product_id: int) -> float:
 
 @router.get('/')
 async def get_all_product_rating(db: Annotated[AsyncSession, Depends(get_db)]):
-    rating = await db.scalars(select(Rating))
+    rating = await db.scalars(select(Rating).where(Rating.is_active == True))
     result = rating.all()
-    if not rating:
+    if not result:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail='No ratings found'
+            detail='No active ratings found'
         )
     return {
         'ratings': result
@@ -47,24 +47,23 @@ async def get_product_rating_detail(db: Annotated[AsyncSession, Depends(get_db)]
     }
 
 
-@ router.post('/')
+@router.post('/')
 async def create_product_rating(db: Annotated[AsyncSession, Depends(get_db)], create_rating: CreateRating):
-    await db.execute(insert(Rating).values(
-        grade=create_rating.grade,
-        user_id=create_rating.user_id,
-        product_id=create_rating.product_id,
-        is_active=create_rating.is_active
-    ))
+    async with db.begin():
+        await db.execute(insert(Rating).values(
+            grade=create_rating.grade,
+            user_id=create_rating.user_id,
+            product_id=create_rating.product_id,
+            is_active=create_rating.is_active
+        ))
 
-    average_rating = await calculate_average_rating(db, create_rating.product_id)
+        average_rating = await calculate_average_rating(db, create_rating.product_id)
 
-    await db.execute(
-        update(Product)
-        .where(Product.id == create_rating.product_id)
-        .values(rating=average_rating)
-    )
-
-    await db.commit()
+        await db.execute(
+            update(Product)
+            .where(Product.id == create_rating.product_id)
+            .values(rating=average_rating)
+        )
 
     return {
         'status_code': status.HTTP_201_CREATED,
@@ -72,24 +71,23 @@ async def create_product_rating(db: Annotated[AsyncSession, Depends(get_db)], cr
     }
 
 
-@ router.put('/{rating_id}')
+@router.put('/{rating_id}')
 async def update_product_rating(db: Annotated[AsyncSession, Depends(get_db)], rating_id: int, update_rating: CreateRating):
-    await db.execute(update(Rating).where(Rating.id == rating_id).values(
-        grade=update_rating.grade,
-        user_id=update_rating.user_id,
-        product_id=update_rating.product_id,
-        is_active=update_rating.is_active
-    ))
+    async with db.begin():
+        await db.execute(update(Rating).where(Rating.id == rating_id).values(
+            grade=update_rating.grade,
+            user_id=update_rating.user_id,
+            product_id=update_rating.product_id,
+            is_active=update_rating.is_active
+        ))
 
-    average_rating = await calculate_average_rating(db, update_rating.product_id)
+        average_rating = await calculate_average_rating(db, update_rating.product_id)
 
-    await db.execute(
-        update(Product)
-        .where(Product.id == update_rating.product_id)
-        .values(average_rating=average_rating)
-    )
-
-    await db.commit()
+        await db.execute(
+            update(Product)
+            .where(Product.id == update_rating.product_id)
+            .values(average_rating=average_rating)
+        )
 
     return {
         'status_code': status.HTTP_200_OK,
@@ -97,13 +95,25 @@ async def update_product_rating(db: Annotated[AsyncSession, Depends(get_db)], ra
     }
 
 
-@ router.delete('/{rating_id}')
+@router.delete('/{rating_id}')
 async def delete_product_rating(db: Annotated[AsyncSession, Depends(get_db)], rating_id: int):
-    await db.execute(update(Rating).where(Rating.id == rating_id).values(
-        is_active=False
-    ))
-    await db.commit()
+    async with db.begin():
+        result = await db.execute(
+            select(Rating).where(Rating.id == rating_id)
+        )
+        rating = result.scalar_one_or_none()
+        if rating is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail='Rating not found'
+            )
+
+        rating.is_active = False
+        db.add(rating)
+
+        await calculate_average_rating(db, rating.product_id)
+
     return {
         'status_code': status.HTTP_200_OK,
-        'transaction': 'Rating deleted successfully'
+        'message': 'Rating deleted successfully'
     }

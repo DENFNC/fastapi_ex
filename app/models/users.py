@@ -11,6 +11,7 @@ class User(Base):
     username = Column(String, nullable=False, unique=True)
     email = Column(String, nullable=False, unique=True)
     password = Column(String, nullable=False)
+    refresh_token = Column(String, nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     is_admin = Column(Boolean, default=False, nullable=False)
 
