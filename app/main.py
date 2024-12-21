@@ -142,6 +142,38 @@ async def add_review(
     }
 
 
-@app.post('/delete_review/{product_id}')
-async def delete_review():
-    pass
+@app.post('/delete_reviews/{product_id}')
+async def deactivate_reviews_and_ratings(
+    product_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    get_user: Annotated[dict, Depends(get_current_user)]
+):
+    if not get_user.get('is_admin', False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Access denied. Admins only.'
+        )
+
+    async with db.begin():
+        product_query = await db.scalar(select(Product).filter(Product.id == product_id))
+        if not product_query:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail='Product not found'
+            )
+
+        await db.execute(
+            update(Feedback)
+            .where(Feedback.product_id == product_id)
+            .values(is_active=False)
+        )
+        await db.execute(
+            update(Rating)
+            .where(Rating.product_id == product_id)
+            .values(is_active=False)
+        )
+
+    return {
+        'status_code': status.HTTP_200_OK,
+        'detail': 'Reviews and ratings deactivated successfully'
+    }
